@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Calculadora de IMC · Lorenzo Bezama</title>
+<style>
+    :root {
+        --bg: #060606;
+        --bg-elevated: #0c0c0c;
+        --card: #111111;
+        --card-hover: #161616;
+        --card2: #181818;
+        --border: #242424;
+        --border-soft: #1c1c1c;
+        --red: #ff3b2f;
+        --red-bright: #ff4d42;
+        --red-dim: #e02e1a;
+        --red-soft: rgba(255, 59, 47, 0.10);
+        --red-border: rgba(255, 59, 47, 0.28);
+        --red-glow: rgba(255, 59, 47, 0.45);
+        --white: #fafafa;
+        --muted: #8a8a8a;
+        --muted2: #6b6b6b;
+        --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --radius: 20px;
+        --radius-sm: 14px;
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: var(--font);
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--white);
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        justify-content: center;
+        position: relative;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient background */
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+            radial-gradient(ellipse 90% 55% at 50% -15%, rgba(255, 59, 47, 0.13), transparent 55%),
+            radial-gradient(ellipse 50% 40% at 95% 70%, rgba(255, 59, 47, 0.05), transparent 50%),
+            radial-gradient(ellipse 40% 30% at 5% 40%, rgba(255, 59, 47, 0.04), transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* Subtle noise overlay for depth */
+    body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.6;
+    }
+
+    .wrap {
+        width: 100%;
+        max-width: 440px;
+        padding: 32px 20px 80px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Animations */
+    @keyframes up {
+        from { opacity: 0; transform: translateY(22px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pop {
+        0% { transform: scale(0.82); opacity: 0.4; }
+        55% { transform: scale(1.06); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+    }
+    @keyframes glow-pulse {
+        0%, 100% { box-shadow: 0 4px 24px var(--red-glow); }
+        50% { box-shadow: 0 4px 36px rgba(255, 59, 47, 0.6); }
+    }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(-10px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+
+    /* Header */
+    .header {
+        text-align: center;
+        margin-bottom: 32px;
+        animation: up 0.65s var(--ease) both;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--card);
+        color: #a0a0a0;
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        padding: 8px 16px;
+        border-radius: 100px;
+        margin-bottom: 22px;
+        border: 1px solid var(--border);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    }
+
+    .badge i {
+        width: 7px;
+        height: 7px;
+        background: var(--red);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--red);
+        display: block;
+        animation: glow-pulse 2.5s ease-in-out infinite;
+    }
+
+    h1 {
+        font-size: 2.35rem;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.8px;
+        margin-bottom: 14px;
+        color: var(--white);
+    }
+
+    h1 span {
+        color: var(--red);
+        background: linear-gradient(135deg, #ff3b2f, #ff6b5a);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .sub {
+        color: var(--muted);
+        font-size: 0.95rem;
+        line-height: 1.55;
+        max-width: 300px;
+        margin: 0 auto;
+        font-weight: 450;
+    }
+
+    /* Icons row */
+    .icons-row {
+        display: flex;
+        justify-content: center;
+        gap: 32px;
+        margin: 30px 0 10px;
+        animation: up 0.65s var(--ease) 0.06s both;
+    }
+
+    .icon-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .icon-circle {
+        width: 54px;
+        height: 54px;
+        border-radius: 18px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        animation: float 3.8s ease-in-out infinite;
+        transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .icon-item:hover .icon-circle {
+        border-color: var(--red-border);
+        transform: translateY(-2px);
+    }
+
+    .icon-item:nth-child(2) .icon-circle { animation-delay: 0.45s; }
+    .icon-item:nth-child(3) .icon-circle { animation-delay: 0.9s; }
+
+    .icon-circle svg {
+        width: 24px;
+        height: 24px;
+        fill: var(--red);
+        opacity: 0.95;
+    }
+
+    .icon-label {
+        font-size: 0.66rem;
+        color: var(--muted2);
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        font-weight: 600;
+    }
+
+    /* Warning */
+    .warn {
+        background: var(--red-soft);
+        border: 1px solid var(--red-border);
+        border-radius: 18px;
+        padding: 18px 18px 18px 22px;
+        margin: 26px 0 6px;
+        font-size: 0.845rem;
+        color: #c8c8c8;
+        line-height: 1.65;
+        position: relative;
+        animation: up 0.65s var(--ease) 0.1s both;
+        backdrop-filter: blur(8px);
+    }
+
+    .warn::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 16px;
+        bottom: 16px;
+        width: 3.5px;
+        background: linear-gradient(180deg, var(--red), var(--red-dim));
+        border-radius: 0 4px 4px 0;
+    }
+
+    .warn b {
+        color: var(--red-bright);
+        font-weight: 700;
+    }
+
+    /* Labels */
+    .label {
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 650;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        margin: 28px 0 12px;
+        display: block;
+        animation: up 0.55s var(--ease) both;
+    }
+
+    /* Cards */
+    .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 22px 20px;
+        position: relative;
+        overflow: hidden;
+        animation: up 0.55s var(--ease) both;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .card:hover {
+        border-color: #2e2e2e;
+    }
+
+    .card::after {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,59,47,0.35), transparent);
+    }
+
+    .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 18px;
+    }
+
+    .num {
+        font-size: 2.75rem;
+        font-weight: 750;
+        letter-spacing: -1.2px;
+        line-height: 1;
+        transition: transform 0.15s var(--ease);
+        display: inline-block;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .unit {
+        font-size: 1.05rem;
+        color: var(--muted);
+        font-weight: 500;
+        letter-spacing: 0.2px;
+    }
+
+    /* Range slider */
+    input[type=range] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 6px;
+        background: transparent;
+        outline: none;
+        cursor: pointer;
+        border-radius: 100px;
+    }
+
+    input[type=range]::-webkit-slider-runnable-track {
+        height: 6px;
+        border-radius: 100px;
+        background: #2a2a2a;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #fff;
+        border: 5px solid var(--red);
+        cursor: grab;
+        margin-top: -10px;
+        box-shadow: 0 0 0 4px rgba(255,59,47,0.15), 0 2px 10px rgba(0,0,0,0.45);
+        transition: transform 0.18s var(--ease), box-shadow 0.18s;
+    }
+
+    input[type=range]::-webkit-slider-thumb:active {
+        cursor: grabbing;
+        transform: scale(1.18);
+        box-shadow: 0 0 0 6px rgba(255,59,47,0.22), 0 4px 16px rgba(0,0,0,0.5);
+    }
+
+    input[type=range]::-moz-range-track {
+        height: 6px;
+        border-radius: 100px;
+        background: #2a2a2a;
+        border: none;
+    }
+
+    input[type=range]::-moz-range-thumb {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #fff;
+        border: 5px solid var(--red);
+        cursor: grab;
+        box-shadow: 0 0 0 4px rgba(255,59,47,0.15), 0 2px 10px rgba(0,0,0,0.45);
+    }
+
+    /* Gender buttons */
+    .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        animation: up 0.55s var(--ease) both;
+    }
+
+    .opt {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 17px 14px;
+        text-align: center;
+        cursor: pointer;
+        font-weight: 650;
+        font-size: 0.95rem;
+        color: var(--white);
+        transition: all 0.25s var(--ease);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .opt:hover {
+        border-color: #333;
+        background: var(--card-hover);
+        transform: translateY(-2px);
+    }
+
+    .opt:active {
+        transform: scale(0.97);
+    }
+
+    .opt.on {
+        background: linear-gradient(145deg, var(--red), var(--red-dim));
+        border-color: transparent;
+        color: #fff;
+        box-shadow: 0 6px 24px var(--red-glow);
+        animation: glow-pulse 2.6s ease-in-out infinite;
+    }
+
+    .opt.on:hover {
+        transform: translateY(-2px);
+        background: linear-gradient(145deg, var(--red-bright), var(--red));
+    }
+
+    /* Main CTA button */
+    .btn {
+        width: 100%;
+        margin-top: 34px;
+        background: linear-gradient(145deg, #ff3b2f 0%, #e02e1a 100%);
+        color: #fff;
+        border: none;
+        border-radius: 18px;
+        padding: 20px;
+        font-size: 1.12rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 8px 28px var(--red-glow);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.28s var(--ease);
+        animation: up 0.55s var(--ease) 0.28s both;
+        letter-spacing: 0.2px;
+    }
+
+    .btn::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(145deg, rgba(255,255,255,0.12), transparent 50%);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 36px rgba(255, 59, 47, 0.55);
+    }
+
+    .btn:hover::before {
+        opacity: 1;
+    }
+
+    .btn:active {
+        transform: scale(0.98) translateY(0);
+    }
+
+    .btn.wait {
+        pointer-events: none;
+        opacity: 0.8;
+    }
+
+    .btn.wait::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 60%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        animation: shimmer 1.2s infinite;
+    }
+
+    /* Results */
+    .results {
+        display: none;
+        margin-top: 48px;
+    }
+
+    .results.show {
+        display: block;
+    }
+
+    .block {
+        opacity: 0;
+        transform: translateY(18px);
+        transition: opacity 0.55s var(--ease), transform 0.55s var(--ease);
+        margin-bottom: 28px;
+    }
+
+    .block.in {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .res-label {
+        font-size: 0.66rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1.6px;
+        font-weight: 650;
+        margin-bottom: 8px;
+    }
+
+    .imc-big {
+        font-size: 4.5rem;
+        font-weight: 800;
+        color: var(--red);
+        line-height: 1;
+        letter-spacing: -2.5px;
+        text-shadow: 0 0 50px rgba(255, 59, 47, 0.3);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .imc-big.pop {
+        animation: pop 0.5s var(--ease);
+    }
+
+    .tag {
+        display: inline-block;
+        margin-top: 16px;
+        padding: 9px 20px;
+        border-radius: 100px;
+        font-size: 0.92rem;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+    }
+
+    .t-bajo { background: rgba(59,130,246,0.14); color: #60a5fa; border: 1px solid rgba(59,130,246,0.28); }
+    .t-normal { background: rgba(34,197,94,0.14); color: #4ade80; border: 1px solid rgba(34,197,94,0.28); }
+    .t-sobre { background: rgba(234,179,8,0.14); color: #facc15; border: 1px solid rgba(234,179,8,0.28); }
+    .t-ob1 { background: rgba(249,115,22,0.14); color: #fb923c; border: 1px solid rgba(249,115,22,0.28); }
+    .t-ob2 { background: rgba(239,68,68,0.14); color: #f87171; border: 1px solid rgba(239,68,68,0.28); }
+    .t-ob3 { background: rgba(185,28,28,0.2); color: #f87171; border: 1px solid rgba(185,28,28,0.38); }
+
+    /* Scale */
+    .scale-box {
+        margin-top: 28px;
+        background: var(--card2);
+        border: 1px solid #222;
+        border-radius: 18px;
+        padding: 20px 18px;
+    }
+
+    .scale-title {
+        font-size: 0.68rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        font-weight: 650;
+        margin-bottom: 16px;
+    }
+
+    .bar {
+        height: 12px;
+        border-radius: 8px;
+        background: linear-gradient(90deg,
+            #3b82f6 0%, #3b82f6 15%,
+            #22c55e 15%, #22c55e 40%,
+            #eab308 40%, #eab308 55%,
+            #f97316 55%, #f97316 70%,
+            #ef4444 70%, #ef4444 85%,
+            #b91c1c 85%, #b91c1c 100%);
+        position: relative;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .marker {
+        position: absolute;
+        top: -7px;
+        width: 5px;
+        height: 26px;
+        background: #fff;
+        border-radius: 3px;
+        box-shadow: 0 0 14px rgba(0,0,0,0.55), 0 0 0 2px rgba(255,255,255,0.1);
+        transform: translateX(-50%);
+        transition: left 0.9s var(--ease);
+    }
+
+    .scale-nums {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.62rem;
+        color: var(--muted2);
+        margin-top: 10px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Stats */
+    .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .stat {
+        background: var(--card2);
+        border: 1px solid #222;
+        border-radius: 16px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        transition: transform 0.25s var(--ease), box-shadow 0.25s, border-color 0.25s;
+    }
+
+    .stat:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+        border-color: #2a2a2a;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 13px;
+        background: var(--red-soft);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border: 1px solid var(--red-border);
+    }
+
+    .stat-icon svg {
+        width: 20px;
+        height: 20px;
+        fill: var(--red);
+    }
+
+    .stat-text .l {
+        font-size: 0.66rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 550;
+    }
+
+    .stat-text .v {
+        font-size: 1.18rem;
+        font-weight: 700;
+        color: #fff;
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Ideal weight */
+    .ideal-box {
+        margin-top: 20px;
+        background: linear-gradient(160deg, rgba(255,59,47,0.12), rgba(255,59,47,0.05));
+        border: 1px solid var(--red-border);
+        border-radius: 18px;
+        padding: 22px 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ideal-box::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,59,47,0.5), transparent);
+    }
+
+    .ideal-title {
+        font-size: 0.68rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1.3px;
+        font-weight: 650;
+        margin-bottom: 12px;
+    }
+
+    .ideal-range {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .ideal-range #idealMin,
+    .ideal-range #idealMax {
+        font-size: 2.15rem;
+        font-weight: 800;
+        color: var(--red-bright);
+        letter-spacing: -0.8px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .ideal-sep {
+        font-size: 1.1rem;
+        color: var(--muted);
+        font-weight: 500;
+    }
+
+    .ideal-unit {
+        font-size: 1rem;
+        color: var(--muted);
+        font-weight: 500;
+        margin-left: 2px;
+    }
+
+    .ideal-desc {
+        font-size: 0.84rem;
+        color: #b8b8b8;
+        line-height: 1.6;
+    }
+
+    /* Explain card */
+    .explain {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px 22px;
+        margin-top: 6px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .explain h3 {
+        font-size: 1.02rem;
+        font-weight: 700;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        color: var(--white);
+    }
+
+    .explain h3 svg {
+        width: 22px;
+        height: 22px;
+        fill: var(--red);
+        flex-shrink: 0;
+    }
+
+    .explain p {
+        font-size: 0.9rem;
+        color: #b0b0b0;
+        line-height: 1.7;
+        margin-bottom: 14px;
+    }
+
+    .explain p:last-child {
+        margin-bottom: 0;
+    }
+
+    .explain b {
+        color: var(--white);
+        font-weight: 650;
+    }
+
+    /* Categories */
+    .cats {
+        margin-top: 8px;
+    }
+
+    .cat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 16px;
+        border-radius: 14px;
+        margin-bottom: 8px;
+        background: var(--card);
+        border: 1px solid transparent;
+        transition: all 0.3s var(--ease);
+        font-size: 0.92rem;
+        font-weight: 500;
+    }
+
+    .cat.hot {
+        border-color: var(--red);
+        background: var(--red-soft);
+        transform: scale(1.02);
+        animation: slideIn 0.4s var(--ease);
+        box-shadow: 0 4px 16px rgba(255,59,47,0.12);
+    }
+
+    .cat .r {
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .cat.hot .r {
+        color: #d0d0d0;
+    }
+
+    /* Note */
+    .note {
+        background: var(--red-soft);
+        border: 1px solid var(--red-border);
+        border-radius: 16px;
+        padding: 18px 20px;
+        margin-top: 22px;
+        font-size: 0.86rem;
+        color: #c8c8c8;
+        line-height: 1.65;
+    }
+
+    .note b {
+        color: var(--red-bright);
+    }
+
+    /* CTA */
+    .cta {
+        text-align: center;
+        margin-top: 40px;
+        padding: 32px 24px;
+        background: linear-gradient(180deg, #0a0a0a, #121212);
+        border: 1px solid #222;
+        border-radius: 22px;
+        opacity: 0;
+        transform: translateY(14px);
+        transition: opacity 0.55s, transform 0.55s;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .cta.in {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .cta::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--red), transparent);
+        opacity: 0.55;
+    }
+
+    .cta p {
+        font-size: 0.95rem;
+        color: #b5b5b5;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .cta strong {
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .ig {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        background: linear-gradient(145deg, var(--red), var(--red-dim));
+        color: #fff !important;
+        font-weight: 700;
+        font-size: 0.96rem;
+        padding: 14px 28px;
+        border-radius: 100px;
+        text-decoration: none;
+        box-shadow: 0 6px 22px var(--red-glow);
+        transition: all 0.25s var(--ease);
+    }
+
+    .ig:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(255, 59, 47, 0.55);
+        background: linear-gradient(145deg, var(--red-bright), var(--red));
+    }
+
+    .ig:active {
+        transform: scale(0.97);
+    }
+
+    .ig svg {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
+    }
+
+    /* Safe area for notched phones */
+    @supports (padding: env(safe-area-inset-bottom)) {
+        .wrap {
+            padding-bottom: calc(80px + env(safe-area-inset-bottom));
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+    <div class="header">
+        <span class="badge"><i></i> BY LORENZO BEZAMA</span>
+        <h1>Calcula tu<br><span>IMC</span></h1>
+        <p class="sub">Una fórmula simple. No dice todo sobre tu cuerpo.</p>
+    </div>
+
+    <div class="icons-row">
+        <div class="icon-item">
+            <div class="icon-circle">
+                <svg viewBox="0 0 24 24"><path d="M12 3a4 4 0 014 4v1h1a3 3 0 013 3v8a3 3 0 01-3 3H7a3 3 0 01-3-3v-8a3 3 0 013-3h1V7a4 4 0 014-4zm0 2a2 2 0 00-2 2v1h4V7a2 2 0 00-2-2zm-5 5a1 1 0 00-1 1v8a1 1 0 001 1h10a1 1 0 001-1v-8a1 1 0 00-1-1H7zm5 2a2.5 2.5 0 110 5 2.5 2.5 0 010-5z"/></svg>
+            </div>
+            <span class="icon-label">Peso</span>
+        </div>
+        <div class="icon-item">
+            <div class="icon-circle">
+                <svg viewBox="0 0 24 24"><path d="M4 2h4v2H6v2h2v2H6v2h2v2H6v2h2v2H6v2h2v2H4V2zm8 0h8v20h-8v-2h2v-2h-2v-2h2v-2h-2v-2h2v-2h-2V8h2V6h-2V4h2V2h-2z"/></svg>
+            </div>
+            <span class="icon-label">Estatura</span>
+        </div>
+        <div class="icon-item">
+            <div class="icon-circle">
+                <svg viewBox="0 0 24 24"><path d="M20.5 6c-.8 0-1.5.3-2 .9V5.5A2.5 2.5 0 0016 3h-1.5c-.8 0-1.5.7-1.5 1.5V6c0 .4-.1.8-.3 1.1L11 10.5V8.5c0-.8-.7-1.5-1.5-1.5H8c-.8 0-1.5.7-1.5 1.5v7c0 .3.1.5.2.7l2.8 4.2c.3.5.9.8 1.5.8h1.5c.8 0 1.5-.7 1.5-1.5v-2.3l2.3-2.8c.4-.5.7-1.1.7-1.7V9.5c.3-.3.7-.5 1.1-.5.8 0 1.5-.7 1.5-1.5S21.3 6 20.5 6z"/></svg>
+            </div>
+            <span class="icon-label">Músculo</span>
+        </div>
+    </div>
+
+    <div class="warn">
+        <b>Ojo con esto:</b> el IMC solo usa tu peso y tu estatura. No sabe cuánta músculo tienes, cuánta grasa, ni cómo estás de salud. Un chico que entrena pesado puede salir "con sobrepeso" y alguien con poca músculo puede salir "normal". Es una referencia rápida, no un diagnóstico.
+    </div>
+
+    <span class="label" style="animation-delay:.14s">TU PESO</span>
+    <div class="card" style="animation-delay:.17s">
+        <div class="row">
+            <span class="num" id="wNum">70</span>
+            <span class="unit">kg</span>
+        </div>
+        <input type="range" id="wSlider" min="30" max="180" value="70" aria-label="Peso en kilogramos">
+    </div>
+
+    <span class="label" style="animation-delay:.2s">TU ESTATURA</span>
+    <div class="card" style="animation-delay:.23s">
+        <div class="row">
+            <span class="num" id="hNum">170</span>
+            <span class="unit">cm</span>
+        </div>
+        <input type="range" id="hSlider" min="130" max="220" value="170" aria-label="Estatura en centímetros">
+    </div>
+
+    <span class="label" style="animation-delay:.26s">SEXO</span>
+    <div class="grid2" style="animation-delay:.28s">
+        <button class="opt on" data-g="sex" data-v="m" type="button">Hombre</button>
+        <button class="opt" data-g="sex" data-v="f" type="button">Mujer</button>
+    </div>
+
+    <button class="btn" id="calcBtn" onclick="go()" type="button">Calcular mi IMC</button>
+
+    <div class="results" id="res">
+
+        <div class="block" id="b1">
+            <div class="res-label">TU RESULTADO</div>
+            <div class="imc-big" id="imcNum">22.5</div>
+            <div class="tag t-normal" id="imcTag">Peso normal</div>
+
+            <div class="scale-box">
+                <div class="scale-title">Dónde estás en la escala</div>
+                <div class="bar">
+                    <div class="marker" id="mark" style="left:30%"></div>
+                </div>
+                <div class="scale-nums">
+                    <span>15</span><span>18.5</span><span>25</span><span>30</span><span>35</span><span>40+</span>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24"><path d="M12 3a4 4 0 014 4v1h1a3 3 0 013 3v8a3 3 0 01-3 3H7a3 3 0 01-3-3v-8a3 3 0 013-3h1V7a4 4 0 014-4zm0 2a2 2 0 00-2 2v1h4V7a2 2 0 00-2-2z"/></svg>
+                    </div>
+                    <div class="stat-text">
+                        <div class="l">Peso actual</div>
+                        <div class="v" id="sW">70 kg</div>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24"><path d="M4 2h4v2H6v2h2v2H6v2h2v2H6v2h2v2H6v2h2v2H4V2zm8 0h8v20h-8v-2h2v-2h-2v-2h2v-2h-2v-2h2v-2h-2V8h2V6h-2V4h2V2h-2z"/></svg>
+                    </div>
+                    <div class="stat-text">
+                        <div class="l">Estatura</div>
+                        <div class="v" id="sH">170 cm</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ideal-box" id="idealBox">
+                <div class="ideal-title">Rango de peso de referencia</div>
+                <div class="ideal-range">
+                    <span id="idealMin">53</span>
+                    <span class="ideal-sep">a</span>
+                    <span id="idealMax">72</span>
+                    <span class="ideal-unit">kg</span>
+                </div>
+                <div class="ideal-desc" id="idealDesc">
+                    Según tu estatura, este es el rango asociado a un IMC entre 18.5 y 24.9. Si entrenas y tienes buena masa muscular, puedes estar por encima sin problema.
+                </div>
+            </div>
+        </div>
+
+        <div class="block" id="b2">
+            <div class="explain">
+                <h3>
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    Qué significa este número
+                </h3>
+                <p>El IMC se calcula así: <b>peso (kg) dividido por la estatura al cuadrado (m²)</b>. Es una cuenta rápida que inventaron hace más de 150 años. No fue pensada para deportistas ni para medir salud real.</p>
+                <p>Si entrenas con pesas y tienes buena masa muscular, es muy posible que tu IMC salga más alto de lo "ideal". Eso no significa que estés mal. Significa que la fórmula no distingue entre músculo y grasa.</p>
+                <p>Por eso este número sirve como <b>punto de partida</b>, no como veredicto. Para saber cómo estás de verdad hace falta mirar composición corporal, fuerza, energía y hábitos.</p>
+            </div>
+        </div>
+
+        <div class="block" id="b3">
+            <div class="res-label">CLASIFICACIÓN SEGÚN LA OMS</div>
+            <div class="cats" id="cats">
+                <div class="cat" data-c="bajo"><span>Bajo peso</span><span class="r">menos de 18.5</span></div>
+                <div class="cat" data-c="normal"><span>Peso normal</span><span class="r">18.5 a 24.9</span></div>
+                <div class="cat" data-c="sobre"><span>Sobrepeso</span><span class="r">25.0 a 29.9</span></div>
+                <div class="cat" data-c="ob1"><span>Obesidad grado I</span><span class="r">30.0 a 34.9</span></div>
+                <div class="cat" data-c="ob2"><span>Obesidad grado II</span><span class="r">35.0 a 39.9</span></div>
+                <div class="cat" data-c="ob3"><span>Obesidad grado III</span><span class="r">40 o más</span></div>
+            </div>
+
+            <div class="note">
+                <b>En la práctica:</b> si entrenas, comes bien y te sientes con energía, no dejes que un número te defina. El espejo, tus levantamientos y cómo rinde tu cuerpo dicen más que cualquier fórmula.
+            </div>
+        </div>
+
+        <div class="cta" id="cta">
+            <p>¿Quieres saber de verdad cómo está tu cuerpo<br>y qué necesitas para mejorar?<br>
+            Escríbeme la palabra <strong>CAMBIO</strong> en Instagram</p>
+            <a class="ig" href="https://instagram.com/pyro_lorenzo" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                @pyro_lorenzo
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const wS = document.getElementById('wSlider');
+    const hS = document.getElementById('hSlider');
+    const wN = document.getElementById('wNum');
+    const hN = document.getElementById('hNum');
+
+    function fill(s, n) {
+        const p = ((s.value - s.min) / (s.max - s.min)) * 100;
+        n.textContent = s.value;
+        n.style.transform = 'scale(1.07)';
+        setTimeout(() => n.style.transform = 'scale(1)', 120);
+        s.style.background = `linear-gradient(to right, var(--red) 0%, var(--red) ${p}%, #2a2a2a ${p}%, #2a2a2a 100%)`;
+    }
+
+    fill(wS, wN);
+    fill(hS, hN);
+    wS.addEventListener('input', () => fill(wS, wN));
+    hS.addEventListener('input', () => fill(hS, hN));
+
+    document.querySelectorAll('.opt').forEach(b => {
+        b.addEventListener('click', function() {
+            document.querySelectorAll(`.opt[data-g="${this.dataset.g}"]`).forEach(x => x.classList.remove('on'));
+            this.classList.add('on');
+        });
+    });
+
+    function go() {
+        const w = +wS.value;
+        const h = +hS.value / 100;
+        const imc = w / (h * h);
+        const r = Math.round(imc * 10) / 10;
+
+        let cat, cls, key;
+        if (imc < 18.5)      { cat = 'Bajo peso';         cls = 't-bajo';   key = 'bajo'; }
+        else if (imc < 25)   { cat = 'Peso normal';        cls = 't-normal'; key = 'normal'; }
+        else if (imc < 30)   { cat = 'Sobrepeso';          cls = 't-sobre';  key = 'sobre'; }
+        else if (imc < 35)   { cat = 'Obesidad grado I';   cls = 't-ob1';   key = 'ob1'; }
+        else if (imc < 40)   { cat = 'Obesidad grado II';  cls = 't-ob2';   key = 'ob2'; }
+        else                 { cat = 'Obesidad grado III'; cls = 't-ob3';   key = 'ob3'; }
+
+        const pct = Math.min(Math.max(((imc - 15) / 25) * 100, 0), 100);
+
+        const btn = document.getElementById('calcBtn');
+        btn.classList.add('wait');
+        btn.textContent = 'Calculando...';
+
+        setTimeout(() => {
+            btn.classList.remove('wait');
+            btn.textContent = 'Calcular mi IMC';
+
+            const num = document.getElementById('imcNum');
+            num.textContent = r.toFixed(1);
+            num.classList.remove('pop');
+            void num.offsetWidth;
+            num.classList.add('pop');
+
+            const tag = document.getElementById('imcTag');
+            tag.textContent = cat;
+            tag.className = 'tag ' + cls;
+
+            document.getElementById('mark').style.left = pct + '%';
+            document.getElementById('sW').textContent = w + ' kg';
+            document.getElementById('sH').textContent = hS.value + ' cm';
+
+            // Peso de referencia (IMC 18.5 a 24.9)
+            const h2 = h * h;
+            const wMin = Math.round(18.5 * h2);
+            const wMax = Math.round(24.9 * h2);
+            document.getElementById('idealMin').textContent = wMin;
+            document.getElementById('idealMax').textContent = wMax;
+
+            let msg = 'Según tu estatura, este es el rango asociado a un IMC entre 18.5 y 24.9. ';
+            if (w < wMin) {
+                msg += 'Tu peso actual está por debajo de ese rango. Si te sientes bien y entrenas, prioriza ganar músculo de forma controlada.';
+            } else if (w > wMax) {
+                msg += 'Tu peso actual está por encima. Si entrenas pesado y tienes buena masa muscular, puede ser totalmente normal.';
+            } else {
+                msg += 'Tu peso actual está dentro de este rango de referencia.';
+            }
+            document.getElementById('idealDesc').textContent = msg;
+
+            document.querySelectorAll('.cat').forEach(c => {
+                c.classList.remove('hot');
+                if (c.dataset.c === key) c.classList.add('hot');
+            });
+
+            const box = document.getElementById('res');
+            box.classList.add('show');
+            box.style.display = 'block';
+
+            ['b1','b2','b3','cta'].forEach((id, i) => {
+                const el = document.getElementById(id);
+                el.classList.remove('in');
+                setTimeout(() => el.classList.add('in'), 90 + i * 150);
+            });
+
+            setTimeout(() => box.scrollIntoView({ behavior: 'smooth', block: 'start' }), 70);
+        }, 360);
+    }
+</script>
+</body>
+</html>
